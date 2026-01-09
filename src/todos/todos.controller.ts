@@ -6,36 +6,50 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { Role } from 'src/generated/prisma/enums';
 import { Roles } from 'src/auth/role.decorators';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateTodoResponse, Todo } from './entities/todo.entity';
 
+@ApiTags('Todos')
+@ApiBearerAuth()
 @Controller('api/todo')
 @UseGuards(AuthGuard, RolesGuard)
 export class TodosController {
-  constructor(private readonly todosService: TodosService) {}
+  constructor(private readonly todosService: TodosService) { }
 
   @Post()
   @Roles(Role.ADMIN)
-  create(@Body() createTodoDto: CreateTodoDto, @Req() req:any) {
+  @ApiOperation({ summary: 'Create a new todo' })
+  @ApiResponse({ status: 201, description: 'The todo has been successfully created.', type: CreateTodoResponse })
+  create(@Body() createTodoDto: CreateTodoDto, @Req() req: any) {
     return this.todosService.create(createTodoDto, req.user.id);
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all todos' })
+  @ApiResponse({ status: 200, description: 'List of all todos.', type: [Todo] })
   findAll() {
     return this.todosService.findAll();
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a todo by id' })
+  @ApiResponse({ status: 200, description: 'The found todo.', type: Todo })
   findOne(@Param('id') id: string) {
     return this.todosService.findOne(id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.LEAD)
+  @ApiOperation({ summary: 'Update a todo' })
+  @ApiResponse({ status: 200, description: 'The updated todo.', type: Todo })
   update(@Param('id') id: string, @Body() updateTodoDto: UpdateTodoDto) {
     return this.todosService.update(id, updateTodoDto);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN, Role.LEAD)
+  @ApiOperation({ summary: 'Delete a todo' })
+  @ApiResponse({ status: 200, description: 'The deleted todo.', type: Todo })
   remove(@Param('id') id: string) {
     return this.todosService.remove(id);
   }
