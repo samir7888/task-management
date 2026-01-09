@@ -1,0 +1,82 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  LEAD
+  MEMBER
+}
+
+enum Status {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  name               String
+  createdAt          DateTime @default(now())
+  role               Role     @default(MEMBER)
+  hashedRefreshToken String?
+
+  memberships TeamMember[]
+  todos       Todo[]       @relation("AssignedTodos")
+}
+
+model TeamMember {
+  id       String   @id @default(uuid())
+  teamId   String
+  userId   String
+  role     Role
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+} 
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  members TeamMember[]
+  todos   Todo[]
+  invites Invite[]
+}
+
+model Invite {
+  id        String   @id @default(uuid())
+  teamId    String
+  email     String
+  role      Role
+  token     String   @unique
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model Todo {
+  id         String   @id @default(uuid())
+  teamId     String
+  title      String
+  completed  Boolean  @default(false)
+  assignedTo String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  team     Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignee User? @relation("AssignedTodos", fields: [assignedTo], references: [id], onDelete: Cascade)
+}
