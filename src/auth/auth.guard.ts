@@ -9,7 +9,7 @@ import { Request } from 'express';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+  constructor(private jwtService: JwtService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -30,6 +30,12 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
+    // 1. Check cookies (Priority for HttpOnly security)
+    if (request.cookies?.access_token) {
+      return request.cookies.access_token;
+    }
+
+    // 2. Check Authorization header (Fallback for mobile/legacy)
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
