@@ -37,6 +37,25 @@ export class TeamController {
     getTeamById(@Param('id') id: string) {
         return this.teamService.getTeamById(id);
     }
+
+    //get all the teams where the userId is as the teammember
+
+    @Get('member/:userId')
+    @Roles(Role.ADMIN, Role.LEAD, Role.MEMBER)
+    @ApiOperation({ summary: 'Get all teams where the user is a member' })
+    @ApiResponse({ status: 200, description: 'List of all teams where the user is a member.', type: [Team] })
+    getTeamsByMemberId(@Param('userId') userId: string) {
+        return this.teamService.getTeamsByMemberId(userId);
+    }
+
+
+
+    
+
+
+
+
+
     @Get(':id/members')
     @ApiOperation({ summary: 'Get team members' })
     @ApiResponse({ status: 200, description: 'List of team members.', type: TeamMembersResponse })

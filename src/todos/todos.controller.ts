@@ -31,11 +31,13 @@ export class TodosController {
     return this.todosService.findAll();
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a todo by id' })
-  @ApiResponse({ status: 200, description: 'The found todo.', type: Todo })
-  findOne(@Param('id') id: string) {
-    return this.todosService.findOne(id);
+
+  //get todo by team id
+  @Get(':teamId')
+  @ApiOperation({ summary: 'Get todos by team id' })
+  @ApiResponse({ status: 200, description: 'List of todos by team id.', type: [Todo] })
+  findTodosByTeamId(@Param('teamId') teamId: string) {
+    return this.todosService.findTodosByTeamId(teamId);
   }
 
   @Patch(':id')

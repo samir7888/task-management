@@ -35,6 +35,15 @@ export class TodosService {
     });
   }
 
+  //get todo by team id
+  async findTodosByTeamId(teamId: string) {
+    return await this.prisma.todo.findMany({
+      where: {
+        teamId,
+      },
+    });
+  }
+
   async update(id: string, updateTodoDto: UpdateTodoDto) {
     return await this.prisma.todo.update({
       where: {

@@ -11,7 +11,7 @@ export class CreateTodoDto {
     title: string;
     
     @IsBoolean()
-    @IsNotEmpty()
+    @IsOptional()
     completed: boolean;
     
     @IsString()

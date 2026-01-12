@@ -65,6 +65,27 @@ export class TeamService {
             throw error;
         }
     }
+
+   async getTeamsByMemberId(userId: string) {
+        try {
+            const teams = await this.prisma.teamMember.findMany({
+                where: {
+                    userId,
+                },
+                select:{
+                    team:true,
+                }
+            });
+            return {
+                message: 'Teams found successfully',
+                teams,
+            };
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
     async getTeamMembers(teamId: string) {
         try {
             const teamMembers = await this.prisma.teamMember.findMany({
