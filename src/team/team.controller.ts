@@ -7,6 +7,7 @@ import { AcceptInviteDto, CreateTeamDto, InviteDto } from './dto/team.dto';
 import { TeamService } from './team.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { InvitesResponse, MessageResponse, Team, TeamMembersResponse, TeamResponse } from './entities/team.entity';
+import { Public } from 'src/auth/public.decorator';
 
 @ApiTags('Teams')
 @ApiBearerAuth()
@@ -31,7 +32,6 @@ export class TeamController {
         return this.teamService.getTeams();
     }
     @Get(':id')
-    @Roles(Role.ADMIN)
     @ApiOperation({ summary: 'Get a team by id' })
     @ApiResponse({ status: 200, description: 'The found team.', type: TeamResponse })
     getTeamById(@Param('id') id: string) {
@@ -50,7 +50,7 @@ export class TeamController {
 
 
 
-    
+
 
 
 
@@ -88,11 +88,12 @@ export class TeamController {
 
 
     //accept invite
+    @Public()
     @Post('invites/accept')
     @ApiOperation({ summary: 'Accept a team invite' })
     @ApiResponse({ status: 200, description: 'Invite accepted.' })
-    acceptInvite(@Body() acceptInviteDto: AcceptInviteDto) {
-        return this.teamService.acceptInvite(acceptInviteDto.token);
+    acceptInvite(@Body() acceptInviteDto: AcceptInviteDto, @Req() req: any) {
+        return this.teamService.acceptInvite(acceptInviteDto.token, req.user?.id);
     }
 
     //view invites

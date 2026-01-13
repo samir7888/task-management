@@ -66,14 +66,14 @@ export class TeamService {
         }
     }
 
-   async getTeamsByMemberId(userId: string) {
+    async getTeamsByMemberId(userId: string) {
         try {
             const teams = await this.prisma.teamMember.findMany({
                 where: {
                     userId,
                 },
-                select:{
-                    team:true,
+                select: {
+                    team: true,
                 }
             });
             return {
@@ -246,7 +246,7 @@ export class TeamService {
 
     //accept invite
 
-    async acceptInvite(token: string) {
+    async acceptInvite(token: string, authenticatedUserId?: string) {
         console.log('Accepting invite for token', token);
         try {
             const invite = await this.prisma.invite.findUnique({
@@ -264,10 +264,17 @@ export class TeamService {
                 throw new BadRequestException('Invite expired');
             }
 
-            // 1. Check if user already exists
-            const user = await this.prisma.user.findUnique({
-                where: { email: invite.email },
-            });
+            // 1. Determine target user
+            let user;
+            if (authenticatedUserId) {
+                user = await this.prisma.user.findUnique({
+                    where: { id: authenticatedUserId },
+                });
+            } else {
+                user = await this.prisma.user.findUnique({
+                    where: { email: invite.email },
+                });
+            }
 
             // 2. Case: User exists and has a password
             if (user && user.passwordHash && user.passwordHash !== '') {
@@ -305,7 +312,7 @@ export class TeamService {
 
                 return {
                     message: 'Invite accepted successfully',
-                    redirect: '/login',
+                    redirect: authenticatedUserId ? `/` : '/login',
                     teamId: invite.teamId,
                 };
             }
@@ -313,7 +320,7 @@ export class TeamService {
             // 3. Case: User doesn't exist or has no password
             return {
                 message: 'Please complete your registration',
-                redirect: `/signup/invite?token=${token}`,
+                redirect: `/signup?token=${token}&email=${invite.email}`,
                 email: invite.email,
                 role: invite.role,
                 teamId: invite.teamId
