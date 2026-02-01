@@ -92,6 +92,15 @@ export class TeamService {
                 where: {
                     teamId,
                 },
+                select: {
+                    user: {
+                        select: {
+                            name: true,
+                            email: true,
+                            id: true,
+                        },
+                    },
+                }
             });
             return {
                 message: 'Team members found successfully',
@@ -149,98 +158,104 @@ export class TeamService {
 
         //check whether invitor is a member of the team or not
 
-        const invitor = await this.prisma.teamMember.findUnique(
-            {
-                where: {
-                    teamId_userId: {
-                        teamId,
-                        userId: InvitorId,
-                    },
+        try {
+            const invitor = await this.prisma.teamMember.findUnique(
+                {
+                    where: {
+                        teamId_userId: {
+                            teamId,
+                            userId: InvitorId,
+                        },
+                    }
                 }
+            );
+            if (!invitor) {
+                throw new Error('Invitor is not a member of the team');
             }
-        );
-        if (!invitor) {
-            throw new Error('Invitor is not a member of the team');
-        }
 
-        //check-role
+            //check-role
 
-        if (invitor.role === Role.MEMBER) {
-            throw new ForbiddenException('Viewers are not allowed to invite users to the team');
-        }
-        if (invitor.role === Role.LEAD && role === Role.ADMIN) {
-            throw new ForbiddenException('Leads are not allowed to invite Admin to the team');
-        }
+            if (invitor.role === Role.MEMBER) {
+                throw new ForbiddenException('Viewers are not allowed to invite users to the team');
+            }
+            if (invitor.role === Role.LEAD && role === Role.ADMIN) {
+                throw new ForbiddenException('Leads are not allowed to invite Admin to the team');
+            }
 
 
-        //check user already exists
+            //check user already exists
 
-        const existingMember = await this.prisma.teamMember.findFirst(
-            {
+            const existingMember = await this.prisma.teamMember.findFirst(
+                {
+                    where: {
+                        teamId,
+                        user: { email },
+                    },
+                },
+            );
+            if (existingMember) {
+                throw new BadRequestException('User already exists in team');
+            }
+
+
+            // 4️⃣ Check existing pending invite
+            const existingInvite = await this.prisma.invite.findFirst({
                 where: {
                     teamId,
-                    user: { email },
+                    email,
+                    accepted: false,
+                    expiresAt: { gt: new Date() },
                 },
-            },
-        );
-        if (existingMember) {
-            throw new Error('User already exists in team');
-        }
+            });
+
+            if (existingInvite) {
+                throw new BadRequestException('Invite already sent to this email');
+            }
 
 
-        // 4️⃣ Check existing pending invite
-        const existingInvite = await this.prisma.invite.findFirst({
-            where: {
-                teamId,
-                email,
-                accepted: false,
-                expiresAt: { gt: new Date() },
-            },
-        });
+            // 5️⃣ Create invite
+            const token = randomUUID();
 
-        if (existingInvite) {
-            throw new BadRequestException('Invite already sent to this email');
-        }
-
-
-        // 5️⃣ Create invite
-        const token = randomUUID();
-
-        const invite = await this.prisma.invite.create({
-            data: {
-                teamId,
-                email,
-                role,
-                token,
-                expiresAt: addDays(new Date(), 7), // valid for 7 days
-            },
-        });
-
-        // 6️⃣ Send email (later)
-
-
-
-        await this.emailQueue.add(
-            SEND_INVITE_EMAIL,
-            {
-                email: invite.email,
-                token: invite.token,
-                teamId: teamId,
-            },
-            {
-                attempts: 5,
-                backoff: {
-                    type: 'exponential',
-                    delay: 3000,
+            const invite = await this.prisma.invite.create({
+                data: {
+                    teamId,
+                    email,
+                    role,
+                    token,
+                    expiresAt: addDays(new Date(), 7), // valid for 7 days
                 },
-            },
-        );
+            });
+
+            // 6️⃣ Send email (later)
 
 
-        return {
-            message: 'Invite sent successfully',
-            inviteToken: invite.token,
-        };
+
+            await this.emailQueue.add(
+                SEND_INVITE_EMAIL,
+                {
+                    email: invite.email,
+                    token: invite.token,
+                    teamId: teamId,
+                },
+                {
+                    attempts: 5,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 3000,
+                    },
+                },
+            );
+
+
+            return {
+                message: 'Invite sent successfully',
+                inviteToken: invite.token,
+            };
+        } catch (error) {
+            throw error;
+        } 
+
+
     }
 
 
