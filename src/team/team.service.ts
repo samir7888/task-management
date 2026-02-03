@@ -78,7 +78,7 @@ export class TeamService {
             });
             return {
                 message: 'Teams found successfully',
-                teams,
+                teams:teams.map((teamMember) => teamMember.team),
             };
         } catch (error) {
             throw error;
